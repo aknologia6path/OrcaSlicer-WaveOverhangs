@@ -1422,7 +1422,7 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
             new_mp.inset_idx = ent->inset_idx;
             out.append(std::move(new_mp));
         } else if (const ExtrusionPath *path = dynamic_cast<const ExtrusionPath*>(ent)) {
-            Polylines kept = diff_pl(Polylines{path->polyline}, clip_region);
+            Polylines kept = diff_pl(Polylines{path->polyline.to_polyline()}, clip_region);
             for (Polyline &pl : kept) {
                 if (pl.points.size() < 2)
                     continue;
