@@ -1357,7 +1357,7 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
     auto clip_paths = [&](const ExtrusionPaths &src_paths, ExtrusionPaths &dst_paths) {
         dst_paths.reserve(dst_paths.size() + src_paths.size());
         for (const ExtrusionPath &p : src_paths) {
-            Polylines kept = diff_pl(Polylines{p.polyline}, clip_region);
+            Polylines kept = diff_pl(Polylines{p.polyline.to_polyline()}, clip_region);
             // Retract each kept polyline's endpoints by half a line-width. diff_pl cuts
             // the wall centerline exactly at the clip boundary, but the physical extrusion
             // footprint extends ~half a line-width past the centerline endpoint as a
@@ -1384,7 +1384,7 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
                 if (pl.points.size() < 2)
                     continue;
                 ExtrusionPath np(p);
-                np.polyline = std::move(pl);
+                np.polyline = Polyline3(pl);
                 dst_paths.emplace_back(std::move(np));
             }
         }
@@ -1427,7 +1427,7 @@ static ExtrusionEntityCollection clip_inner_perimeters_in_zone(const ExtrusionEn
                 if (pl.points.size() < 2)
                     continue;
                 ExtrusionPath np(*path);
-                np.polyline = std::move(pl);
+                np.polyline = Polyline3(pl);
                 np.inset_idx = ent->inset_idx;
                 out.append(std::move(np));
             }

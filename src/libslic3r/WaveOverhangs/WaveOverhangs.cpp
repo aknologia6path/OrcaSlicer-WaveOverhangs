@@ -438,14 +438,14 @@ void append_shell_perimeters(ExtrusionPaths &overhang_region,
 static ExtrusionPath make_wave_path(const Polyline &polyline, const Flow &flow)
 {
     ExtrusionPath path(erOverhangPerimeter, flow.mm3_per_mm(), flow.width(), flow.height());
-    path.polyline = polyline;
+    path.polyline = Polyline3(polyline);
     return path;
 }
 
 static ExtrusionPath make_wave_path(Polyline &&polyline, const Flow &flow)
 {
     ExtrusionPath path(erOverhangPerimeter, flow.mm3_per_mm(), flow.width(), flow.height());
-    path.polyline = std::move(polyline);
+    path.polyline = Polyline3(polyline);
     return path;
 }
 
@@ -547,13 +547,14 @@ void append_wave_fronts(ExtrusionPaths &overhang_region,
             double score = 0.;
             for (const auto &[distance_along, weight] : samples) {
                 Point sample = point_at_distance(candidate, distance_along);
-                std::pair<int, Point> foot = foot_pt(it->polyline.points, sample);
+                const Polyline it_poly2d = it->polyline.to_polyline();
+                std::pair<int, Point> foot = foot_pt(it_poly2d.points, sample);
                 int seg_idx = foot.first;
                 if (seg_idx < 0 || size_t(seg_idx + 1) >= it->polyline.points.size())
                     continue;
 
-                const Point &a = it->polyline.points[size_t(seg_idx)];
-                const Point &b = it->polyline.points[size_t(seg_idx + 1)];
+                const Point a = to_2d(it->polyline.points[size_t(seg_idx)]);
+                const Point b = to_2d(it->polyline.points[size_t(seg_idx + 1)]);
                 const bool interior_projection = foot.second != a && foot.second != b;
                 const double distance_to_support = (sample - foot.second).cast<double>().norm();
                 const double normalized_support = std::max(0.0, 1.0 - distance_to_support / double(std::max<coord_t>(1, support_reach)));
@@ -622,9 +623,13 @@ void append_zig_zag_front_levels(ExtrusionPaths               &overhang_region,
         if (d_flip < d_keep)
             front.reverse();
         if (current.last_point() == front.first_point())
-            current.polyline.append(front.points.begin() + 1, front.points.end());
+            {
+                Polyline tail = front;
+                tail.points.erase(tail.points.begin());
+                current.polyline.append(Polyline3(tail));
+            }
         else
-            current.polyline.append(std::move(front));
+            current.polyline.append(Polyline3(front));
     };
 
     std::function<void(size_t, size_t, bool)> follow_branch = [&](size_t level_idx, size_t front_idx, bool reverse_front) {
